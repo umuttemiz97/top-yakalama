@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Topu Yakalama Oyunu - Replay Butonlu</title>
+  <style>
+    body { margin: 0; background: #222; color: white; text-align: center; font-family: Arial; }
+    canvas { background: #333; display: block; margin: 20px auto; border-radius: 12px; }
+    #replayBtn {
+      display: none;
+      margin: 20px auto;
+      padding: 10px 20px;
+      font-size: 18px;
+      background-color: #007bff;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+    }
+    #replayBtn:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>Topu Yakalama Oyunu</h1>
+  <canvas id="gameCanvas" width="400" height="500"></canvas>
+  <p>Puan: <span id="score">0</span></p>
+  <p>En Yüksek Skor: <span id="highScore">0</span></p>
+  <p id="status"></p>
+  <button id="replayBtn">Tekrar Oyna</button>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const replayBtn = document.getElementById("replayBtn");
+
+    let platform = { x: 170, y: 480, width: 60, height: 10 };
+    let ball = { x: Math.random() * 360, y: 0, radius: 15, speed: 2 };
+    let score = 0;
+    let gameOver = false;
+
+    let highScore = localStorage.getItem("topYakalaHighScore") || 0;
+    document.getElementById("highScore").innerText = highScore;
+
+    const catchSound = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
+    const gameOverSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
+
+    function drawPlatform() {
+      ctx.fillStyle = "#4CAF50";
+      ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.fillStyle = "#FF5722";
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function moveBall() {
+      ball.y += ball.speed;
+      if (ball.y + ball.radius > platform.y &&
+          ball.x > platform.x && ball.x < platform.x + platform.width) {
+        score++;
+        catchSound.play();
+        document.getElementById("score").innerText = score;
+
+        if(score > highScore){
+          highScore = score;
+          localStorage.setItem("topYakalaHighScore", highScore);
+          document.getElementById("highScore").innerText = highScore;
+        }
+
+        ball.y = 0;
+        ball.x = Math.random() * 360;
+        ball.speed += 0.2;
+      } else if (ball.y - ball.radius > canvas.height) {
+        if(!gameOver){
+          gameOverSound.play();
+          document.getElementById("status").innerText = "Oyun bitti!";
+
+          // Replay butonunu göster
+          replayBtn.style.display = "inline-block";
+        }
+        gameOver = true;
+      }
+    }
+
+    function draw() {
+      if (gameOver) return;
+      clearCanvas();
+      drawPlatform();
+      drawBall();
+      moveBall();
+      requestAnimationFrame(draw);
+    }
+
+    function movePlatform(e) {
+      let rect = canvas.getBoundingClientRect();
+      let mouseX = e.clientX - rect.left;
+      platform.x = mouseX - platform.width / 2;
+      if (platform.x < 0) platform.x = 0;
+      if (platform.x + platform.width > canvas.width)
+        platform.x = canvas.width - platform.width;
+    }
+
+    function resetGame() {
+      score = 0;
+      ball.speed = 2;
+      ball.x = Math.random() * 360;
+      ball.y = 0;
+      gameOver = false;
+      document.getElementById("score").innerText = score;
+      document.getElementById("status").innerText = "";
+      replayBtn.style.display = "none";
+      draw();
+    }
+
+    canvas.addEventListener("mousemove", movePlatform);
+    replayBtn.addEventListener("click", resetGame);
+
+    draw();
+  </script>
+</body>
+</html>
